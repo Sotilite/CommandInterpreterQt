@@ -1,0 +1,5 @@
+﻿  moc CommandInterpreterQt.h
+  CommandInterpreterQt.cpp
+  main.cpp
+  moc_CommandInterpreterQt.cpp
+  CommandInterpreterQt.vcxproj -> C:\Users\Admin\Desktop\Программирование\Проекты С++\CommandInterpreterQt\x64\Debug\CommandInterpreterQt.exe
