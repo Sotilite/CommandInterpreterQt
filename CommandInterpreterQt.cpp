@@ -1,10 +1,4 @@
 #include "CommandInterpreterQt.h"
-#include "ui_CommandInterpreterQt.h"
-#include "MeasureMachine.h"
-#include "Report.h"
-#include <QFileDialog>
-#include <qmessagebox.h>
-#include <qhash.h>
 
 using namespace std;
 
@@ -16,18 +10,13 @@ CommandInterpreterQt::CommandInterpreterQt(QWidget* parent)
 	mMachine = new MeasureMachine(this);
 	report = new Report(this);
 
-	planeResults = QHash<QString, tuple<double*, double*>>();
-	circleResults = QHash<QString, tuple<double*, double*, double*>>();
-	commandsHistory = QHash<QString, QString>();
-	commandsResults = QHash<int, QHash<QString, QString>>();
 	numPreviousLine = 0;
 	sequenceNumber = 0;
-	//numberOfClicks = 0;
+	numberOfClicks = 0;
 	hasError = false;
 
-
 	connect(ui.runButton, &QPushButton::clicked, this, &CommandInterpreterQt::runButtonClick);
-	//connect(ui.debugButton, &QPushButton::clicked, this, &CommandInterpreterQt::debugButtonClick);
+	connect(ui.debugButton, &QPushButton::clicked, this, &CommandInterpreterQt::debugButtonClick);
 	connect(ui.saveFileButton, &QPushButton::clicked, this, &CommandInterpreterQt::saveFileButtonClick);
 	connect(ui.openFileButton, &QPushButton::clicked, this, &CommandInterpreterQt::openFileButtonClick);
 	connect(ui.getReportButton, &QPushButton::clicked, this, &CommandInterpreterQt::getReportButtonClick);
@@ -47,7 +36,7 @@ CommandInterpreterQt::~CommandInterpreterQt()
 {
 }
 
-void CommandInterpreterQt::throwError(QString command, Errors error)
+void CommandInterpreterQt::throwError(const QString& command, Errors error)
 {
 	hasError = true;
 	ui.outputConsole->setTextColor(QColor(255, 0, 0));
@@ -59,45 +48,84 @@ void CommandInterpreterQt::throwError(QString command, Errors error)
 	ui.outputConsole->setTextColor(QColor(0, 0, 0));
 }
 
+void CommandInterpreterQt::callCommmand(const QStringList& inputCommands, int index)
+{
+	QString nameCommand = inputCommands[index];
+	nameCommand = nameCommand.remove(nameCommand.indexOf("#") + 1, nameCommand.length()).toUpper();
+	QString command = inputCommands[index];
+	command = command.replace(" ", "").toUpper();
+
+	if (nameCommand == "COMMENT#")
+		getCommentResults(command, inputCommands, index);
+	else if (nameCommand == "MOVE#")
+		getMoveResults(command, inputCommands, index);
+	else if (nameCommand == "POINT#")
+		getPointResults(command, inputCommands, index);
+	else if (nameCommand == "CIRCLE#")
+		getCircleResults(command, inputCommands, index);
+	else if (nameCommand == "C_POINT#")
+		getCenterResults(command, inputCommands, index);
+	else if (nameCommand == "PLANE#")
+		getPlaneResults(command, inputCommands, index);
+	else if (nameCommand == "P_POINT#")
+		getProjectionResults(command, inputCommands, index);
+	else if (nameCommand == "DEVIATION#")
+		getDeviationResults(command, inputCommands, index);
+	else throwError(command, Errors::invalidFormat);
+}
+
 void CommandInterpreterQt::runButtonClick()
 {
-	hasError = false;
-	commandsResults.clear();
-	sequenceNumber = 0;
-	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n").toList();
+	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n");
+	inputCommands.removeAll(QString());
+	if (numberOfClicks == 0) {
+		hasError = false;
+		commandsResults.clear();
+	}
+	else if (numberOfClicks >= inputCommands.length() - 1) {
+		numberOfClicks = 0;
+		sequenceNumber = 0;
+		commandsHistory.clear();
+		ui.outputConsole->append("");
+	}
 
-	for (int i = 0; i < inputCommands.length(); i++) {
-		if (inputCommands[i].length() != 0) {
-			QString nameCommand = inputCommands[i];
-			nameCommand = nameCommand.remove(nameCommand.indexOf("#") + 1, nameCommand.length()).toUpper();
-			QString command = inputCommands[i];
-			command = command.replace(" ", "").toUpper();
+	if (inputCommands.length() > 0) {
+		for (int i = numberOfClicks; i < inputCommands.length(); i++)
+			callCommmand(inputCommands, i);
 
-			if (nameCommand == "COMMENT#")
-				getCommentResults(command, inputCommands, i);
-			else if (nameCommand == "MOVE#")
-				getMoveResults(command, inputCommands, i);
-			else if (nameCommand == "POINT#")
-				getPointResults(command, inputCommands, i);
-			else if (nameCommand == "CIRCLE#")
-				getCircleResults(command, inputCommands, i);
-			else if (nameCommand == "C_POINT#")
-				getCenterResults(command, inputCommands, i);
-			else if (nameCommand == "PLANE#")
-				getPlaneResults(command, inputCommands, i);
-			else if (nameCommand == "P_POINT#")
-				getProjectionResults(command, inputCommands, i);
-			else if (nameCommand == "DEVIATION#")
-				getDeviationResults(command, inputCommands, i);
-			else throwError(command, Errors::invalidFormat);
+		if (numPreviousLine != inputCommands.length()) {
+			ui.inputConsole->append("");
+			numPreviousLine = inputCommands.length();
 		}
+		ui.outputConsole->append("");
+		commandsHistory.clear();
+		numberOfClicks = 0;
+		sequenceNumber = 0;
 	}
-	if (numPreviousLine != inputCommands.length() || inputCommands.last().length() != 0) {
-		ui.inputConsole->append("");
-		numPreviousLine = inputCommands.length() + 1;
+}
+
+void CommandInterpreterQt::debugButtonClick()
+{
+	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n");
+	inputCommands.removeAll(QString());
+	if (numberOfClicks == 0) {
+		hasError = false;
+		commandsResults.clear();
 	}
-	ui.outputConsole->append("");
-	commandsHistory.clear();
+
+	if (numberOfClicks < inputCommands.length() && inputCommands.length() > 0) {
+		callCommmand(inputCommands, numberOfClicks);
+		numberOfClicks++;
+	}
+	else {
+		commandsHistory.clear();
+		if (numPreviousLine != inputCommands.length() || inputCommands.last().length() != 0) {
+			ui.inputConsole->append("");
+			numPreviousLine = inputCommands.length() + 1;
+		}
+		ui.outputConsole->append("");
+		numberOfClicks = 0;
+	}
 }
 
 QString CommandInterpreterQt::getNumberCommand(QString command)
@@ -107,14 +135,14 @@ QString CommandInterpreterQt::getNumberCommand(QString command)
 	return numCommand;
 }
 
-bool CommandInterpreterQt::isNumber(QString& numCommand)
+bool CommandInterpreterQt::isNumber(const QString& numCommand)
 {
 	for (int i = 0; i < numCommand.length(); i++)
 		if (!numCommand[i].isNumber()) return false;
 	return true;
 }
 
-void CommandInterpreterQt::determineColorAndOutputResult(int r, int g, int b, QString nameCommand, QString result)
+void CommandInterpreterQt::determineColorAndOutputResult(int r, int g, int b, const QString& nameCommand, const QString& result)
 {
 	ui.outputConsole->setTextColor(QColor(r, g, b));
 	ui.outputConsole->append(nameCommand + ": ");
@@ -122,7 +150,7 @@ void CommandInterpreterQt::determineColorAndOutputResult(int r, int g, int b, QS
 	ui.outputConsole->insertPlainText(result);
 }
 
-void CommandInterpreterQt::getCommentResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getCommentResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -130,7 +158,7 @@ void CommandInterpreterQt::getCommentResults(QString command, QStringList inputC
 		if (commandsHistory.contains(nameCommand)) throwError(inputCommands[index], Errors::existingCommand);
 		else {
 			QString textComment = inputCommands[index];
-			textComment = textComment.remove(0, command.indexOf("(") + 1).replace(")", "");
+			textComment = textComment.remove(0, textComment.indexOf("(") + 1).replace(")", "");
 			determineColorAndOutputResult(255, 0, 0, nameCommand, "\n//" + textComment);
 			commandsHistory[nameCommand] = "(" + textComment + ")";
 		}
@@ -138,7 +166,7 @@ void CommandInterpreterQt::getCommentResults(QString command, QStringList inputC
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::hasOnlyNumbers(QString command, QString nameCommand)
+bool CommandInterpreterQt::hasOnlyNumbers(QString command, const QString& nameCommand)
 {
 	int numOpenBrackets = command.split('(').length() - 1;
 	int numCloseBrackets = command.split(')').length() - 1;
@@ -176,7 +204,7 @@ bool CommandInterpreterQt::hasOnlyNumbers(QString command, QString nameCommand)
 	return false;
 }
 
-void CommandInterpreterQt::getMoveResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getMoveResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -193,7 +221,7 @@ void CommandInterpreterQt::getMoveResults(QString command, QStringList inputComm
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::isVectorCorrect(QString command, QString nameCommand)
+bool CommandInterpreterQt::isVectorCorrect(QString& command, const QString& nameCommand)
 {
 	QString vector = command;
 	vector = vector.remove(0, command.indexOf("[") + 1);
@@ -205,7 +233,7 @@ bool CommandInterpreterQt::isVectorCorrect(QString command, QString nameCommand)
 	return false;
 }
 
-void CommandInterpreterQt::getPointResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getPointResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -214,10 +242,10 @@ void CommandInterpreterQt::getPointResults(QString command, QStringList inputCom
 		else if (hasOnlyNumbers(command, "") && isVectorCorrect(command, nameCommand)) {
 			QString dataCommand = command;
 			dataCommand = dataCommand.remove(0, command.indexOf("("));
-			tuple resultCommand = mMachine->point(dataCommand, 0.0125);
-			determineColorAndOutputResult(0, 255, 0, nameCommand, "\n" + get<0>(resultCommand));
+			auto data = mMachine->point(dataCommand, 0.0125);
+			determineColorAndOutputResult(0, 255, 0, nameCommand, "\n" + data.get_result());
 			commandsHistory[nameCommand] = dataCommand;
-			commandsResults[sequenceNumber][nameCommand] = get<0>(resultCommand);
+			commandsResults[sequenceNumber][nameCommand] = data.get_result();
 			sequenceNumber++;
 		}
 		else throwError(inputCommands[index], Errors::invalidFormat);
@@ -225,7 +253,7 @@ void CommandInterpreterQt::getPointResults(QString command, QStringList inputCom
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getCircleResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getCircleResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -247,13 +275,11 @@ void CommandInterpreterQt::getCircleResults(QString command, QStringList inputCo
 				QString secondPoint = commandsHistory[points[1]];
 				QString thirdPoint = commandsHistory[points[2]];
 				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
-
-				tuple resultCommand = mMachine->circle(commandsHistory[nameCommand], points, 0.0125, 0.0125);
-				tuple dataCenterCicle = make_tuple(get<1>(resultCommand), get<2>(resultCommand), get<3>(resultCommand));
-
-				circleResults[nameCommand] = dataCenterCicle;
-				determineColorAndOutputResult(255, 170, 0, nameCommand, get<0>(resultCommand));
-				commandsResults[sequenceNumber][nameCommand] = get<0>(resultCommand);
+				auto data = mMachine->circle(commandsHistory[nameCommand], points, 0.0125, 0.0125);
+				circleResults.insert(nameCommand, MeasureMachine::DataCircle{
+					data.get_nomCenter(), data.get_actCenter(), data.get_norVector() });
+				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
+				commandsResults[sequenceNumber][nameCommand] = data.get_result();
 				sequenceNumber++;
 			}
 		}
@@ -261,7 +287,7 @@ void CommandInterpreterQt::getCircleResults(QString command, QStringList inputCo
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getCenterResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getCenterResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -270,10 +296,10 @@ void CommandInterpreterQt::getCenterResults(QString command, QStringList inputCo
 		else {
 			QString nameCircle = command.split("(")[1].replace(")", "").toUpper();
 			if (commandsHistory.contains(nameCircle)) {
-				tuple dataCenter = mMachine->center(circleResults[nameCircle]);
-				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + get<0>(dataCenter));
-				commandsHistory[nameCommand] = get<1>(dataCenter);
-				commandsResults[sequenceNumber][nameCommand] = get<0>(dataCenter);
+				auto data = mMachine->center(circleResults[nameCircle]);
+				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + data.get_result());
+				commandsHistory[nameCommand] = data.get_dataDict();
+				commandsResults[sequenceNumber][nameCommand] = data.get_result();
 				sequenceNumber++;
 			}
 			else throwError(nameCircle, Errors::nonExistentCommand);
@@ -282,7 +308,7 @@ void CommandInterpreterQt::getCenterResults(QString command, QStringList inputCo
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getPlaneResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getPlaneResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -305,11 +331,10 @@ void CommandInterpreterQt::getPlaneResults(QString command, QStringList inputCom
 				QString thirdPoint = commandsHistory[points[2]];
 				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
 
-				tuple resultCommand = mMachine->plane(commandsHistory[nameCommand], points);
-				tuple norVectorAndPoint = make_tuple(get<1>(resultCommand), get<2>(resultCommand));
-				planeResults[nameCommand] = norVectorAndPoint;
-				determineColorAndOutputResult(255, 170, 0, nameCommand, get<0>(resultCommand));
-				commandsResults[sequenceNumber][nameCommand] = get<0>(resultCommand);
+				auto data = mMachine->plane(commandsHistory[nameCommand], points);
+				planeResults.insert(nameCommand, MeasureMachine::DataPlane{ data.get_norVector(), data.get_point() });
+				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
+				commandsResults[sequenceNumber][nameCommand] = data.get_result();
 				sequenceNumber++;
 			}
 		}
@@ -317,7 +342,7 @@ void CommandInterpreterQt::getPlaneResults(QString command, QStringList inputCom
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getProjectionResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getProjectionResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -329,11 +354,11 @@ void CommandInterpreterQt::getProjectionResults(QString command, QStringList inp
 			QString namePoint = command.split("[")[1].replace("]", "").toUpper();
 			if (!commandsHistory.contains(namePoint)) throwError(namePoint, Errors::nonExistentCommand);
 			else if (commandsHistory.contains(namePlane)) {
-				tuple dataProjoction = mMachine->projectionPoint(commandsHistory[namePoint],
-					get<0>(planeResults[namePlane]), get<1>(planeResults[namePlane]));
-				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + get<0>(dataProjoction));
-				commandsHistory[nameCommand] = get<1>(dataProjoction);
-				commandsResults[sequenceNumber][nameCommand] = get<0>(dataProjoction);
+				auto data = mMachine->projectionPoint(commandsHistory[namePoint],
+					planeResults[namePlane].get_norVector(), planeResults[namePlane].get_point());
+				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + data.get_result());
+				commandsHistory[nameCommand] = data.get_nomPoint();
+				commandsResults[sequenceNumber][nameCommand] = data.get_result();
 				sequenceNumber++;
 			}
 			else throwError(namePlane, Errors::nonExistentCommand);
@@ -342,41 +367,39 @@ void CommandInterpreterQt::getProjectionResults(QString command, QStringList inp
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::isDeviationCorrect(QString nameCommand, QString strDeviation)
+bool CommandInterpreterQt::isDeviationCorrect(const QString& nameCommand, QString strDeviation)
 {
+	strDeviation = strDeviation.removeFirst().removeLast();
+	QStringList f = strDeviation.split(",");
 	if (nameCommand.contains("POINT")) {
-		double pointDeviation = 0.0;
-		if (strDeviation.length() > 0) {
-			try {
+		if (strDeviation.split(".").length() - 1 == 1 && strDeviation.split(",").length() == 1) {
+			strDeviation = strDeviation.replace(".", "");
+			double pointDeviation = 0.0;
+			if (strDeviation.length() > 0 && isNumber(strDeviation)) {
 				pointDeviation = strDeviation.toDouble();
+				if (pointDeviation > 0) return true;
 			}
-			catch (...) {
-				return false;
-			}
-			if (pointDeviation < 0) return false;
-			return true;
 		}
+		return false;
 	}
 	else {
-		QStringList deviations = strDeviation.split(",");
-		double centerDeviation = 0.0;
-		double radiusDeviation = 0.0;
-		if (deviations[0].length() > 0 && deviations[1].length() > 0) {
-			try {
+		if (strDeviation.split(".").length() - 1 == 2 && strDeviation.split(",").length() == 2) {
+			strDeviation = strDeviation.replace(".", "");
+			QStringList deviations = strDeviation.split(",");
+			double centerDeviation = 0.0;
+			double radiusDeviation = 0.0;
+			if (deviations[0].length() > 0 && deviations[1].length() > 0
+				&& isNumber(deviations[0]) && isNumber(deviations[1])) {
 				centerDeviation = deviations[0].toDouble();
 				radiusDeviation = deviations[1].toDouble();
-			}
-			catch (...) {
-				return false;
+				if (centerDeviation >= 0 || radiusDeviation >= 0) return true;
 			}
 		}
-		if (centerDeviation < 0 || radiusDeviation < 0) return false;
-		return true;
+		return false;
 	}
-	return true;
 }
 
-void CommandInterpreterQt::getDeviationResults(QString command, QStringList inputCommands, int index)
+void CommandInterpreterQt::getDeviationResults(QString& command, const QStringList& inputCommands, int index)
 {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
@@ -450,8 +473,6 @@ void CommandInterpreterQt::getReportButtonClick()
 			QString fileName(fileInfo.fileName());
 			if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
 				QTextEdit data;
-				QHash s = commandsResults[0];
-				QString v = s.keys()[0];
 				data.setText(report->createReport(commandsResults, fileName));
 				QTextStream out(&file);
 				out << data.toHtml();
@@ -473,6 +494,7 @@ void CommandInterpreterQt::clearInputButtonClick()
 	numPreviousLine = 0;
 	circleResults.clear();
 	planeResults.clear();
+	numberOfClicks = 0;
 }
 
 void CommandInterpreterQt::clearOutputButtonClick()
@@ -481,11 +503,13 @@ void CommandInterpreterQt::clearOutputButtonClick()
 	numPreviousLine = 0;
 	circleResults.clear();
 	planeResults.clear();
+	commandsHistory.clear();
 	commandsResults.clear();
+	numberOfClicks = 0;
 	sequenceNumber = 0;
 }
 
-void CommandInterpreterQt::processButtonClick(QString nameCommand)
+void CommandInterpreterQt::processButtonClick(const QString& nameCommand)
 {
 	if (ui.inputConsole->toPlainText().length() == 0)
 		ui.inputConsole->insertPlainText(nameCommand);

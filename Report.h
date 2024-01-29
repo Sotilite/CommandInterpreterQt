@@ -16,13 +16,13 @@ public:
 	~Report();
 
 private slots:
-	QString generateCodeForPoint(QString nameCommand, QString dataCommand);
-	QString generateCodeForCircle(QString nameCommand, QString dataCommand);
-	QString generateCodeForPlane(QString nameCommand, QString dataCommand);
-	QString generateCodeForDeviation(QString dataCommand);
+	QString generateCodeForPoint(const QString &nameCommand, const QString &dataCommand);
+	QString generateCodeForCircle(const QString &nameCommand, const QString &dataCommand);
+	QString generateCodeForPlane( const QString &nameCommand, const QString &dataCommand);
+	QString generateCodeForDeviation(const QString &dataCommand);
 
 public slots:
-	QString createReport(QHash<int, QHash<QString, QString>> commandsResults, QString fileName);
+	QString createReport(const QMap<int, QMap<QString, QString>> &commandsResults, QString &fileName);
 };
 
 

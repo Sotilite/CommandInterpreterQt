@@ -1,2 +1,0 @@
-C:\Users\Admin\Desktop\Программирование на C#\CommandInterpreterQt\x64\Debug\CommandInterpreterQt.exe
-C:\Users\Admin\Desktop\Программирование\Проекты С++\CommandInterpreterQt\x64\Debug\CommandInterpreterQt.exe

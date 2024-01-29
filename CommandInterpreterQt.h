@@ -1,16 +1,17 @@
 #pragma once
 
+#include "ui_CommandInterpreterQt.h"
 #include <QtWidgets/QMainWindow>
 #include "CommandInterpreterQt.h"
-#include "ui_CommandInterpreterQt.h"
 #include "MeasureMachine.h"
 #include "Report.h"
 #include <iostream>
-#include <QString>
+#include <qstring.h>
 #include <qmap.h>
 #include <algorithm>
 #include <tuple>
-#include <qhash.h>
+#include <qfileDialog.h>
+#include <qmessagebox.h>
 
 class CommandInterpreterQt : public QMainWindow
 {
@@ -31,20 +32,18 @@ private:
         nonExistentCommand,
         invalidFormat
     };
-    QHash<QString, tuple<double*, double*>> planeResults;
-    QHash<QString, tuple<double*, double*, double*>> circleResults;
-    QHash<QString, QString> commandsHistory;
-    QHash<int, QHash<QString, QString>> commandsResults;
+    QMap<QString, MeasureMachine::DataCircle> circleResults;
+    QMap<QString, MeasureMachine::DataPlane> planeResults;
+    QMap<QString, QString> commandsHistory;
+    QMap<int, QMap<QString, QString>> commandsResults;
     int numPreviousLine;
     int sequenceNumber;
-    //int numberOfClicks;
+    int numberOfClicks;
     bool hasError;
-
-
     
 private slots:
     void runButtonClick();
-    //void debugButtonClick();
+    void debugButtonClick();
     void saveFileButtonClick();
     void openFileButtonClick();
     void getReportButtonClick();
@@ -58,20 +57,21 @@ private slots:
     void planeButtonClick();
     void projectionButtonClick();
     void deviationButtonClick();
-    void getCommentResults(QString command, QStringList inputCommands, int index);
-    void getMoveResults(QString command, QStringList inputCommands, int index);
-    void getPointResults(QString command, QStringList inputCommands, int index);
-    void getCircleResults(QString command, QStringList inputCommands, int index);
-    void getCenterResults(QString command, QStringList inputCommands, int index);
-    void getPlaneResults(QString command, QStringList inputCommands, int index);
-    void getProjectionResults(QString command, QStringList inputCommands, int index);
-    void getDeviationResults(QString command, QStringList inputCommands, int index);
-    void throwError(QString command, Errors error);
+    void callCommmand(const QStringList &inputCommands, int index);
+    void getCommentResults(QString &command, const QStringList &inputCommands, int index);
+    void getMoveResults(QString &command, const QStringList &inputCommands, int index);
+    void getPointResults(QString &command, const QStringList &inputCommands, int index);
+    void getCircleResults(QString &command, const QStringList &inputCommands, int index);
+    void getCenterResults(QString &command, const QStringList &inputCommands, int index);
+    void getPlaneResults(QString &command, const QStringList &inputCommands, int index);
+    void getProjectionResults(QString &command, const QStringList &inputCommands, int index);
+    void getDeviationResults(QString &command, const QStringList &inputCommands, int index);
+    void throwError(const QString &command, Errors error);
     QString getNumberCommand(QString command);
-    bool isNumber(QString& numCommand);
-    void determineColorAndOutputResult(int r, int g, int b, QString nameCommand, QString result);
-    bool hasOnlyNumbers(QString command, QString nameCommand);
-    bool isVectorCorrect(QString command, QString nameCommand);
-    bool isDeviationCorrect(QString nameCommand, QString strDeviation);
-    void processButtonClick(QString nameCommand);
+    bool isNumber(const QString& numCommand);
+    void determineColorAndOutputResult(int r, int g, int b, const QString &nameCommand, const QString & result);
+    bool hasOnlyNumbers(QString command, const QString &nameCommand);
+    bool isVectorCorrect(QString &command, const QString &nameCommand);
+    bool isDeviationCorrect(const QString &nameCommand, QString strDeviation);
+    void processButtonClick(const QString &nameCommand);
 };

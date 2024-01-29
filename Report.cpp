@@ -1,5 +1,4 @@
 #include "Report.h"
-#include <qmap.h>
 
 using namespace std;
 
@@ -10,42 +9,42 @@ Report::Report(QObject *parent)
 Report::~Report()
 {}
 
-QString Report::createReport(QHash<int, QHash<QString, QString>> commandsResults, QString fileName)
+QString Report::createReport(const QMap<int, QMap<QString, QString>> &commandsResults, QString &fileName)
 {
     fileName = fileName.remove(fileName.indexOf("."), fileName.length());
 	QString result = "<h1>Name of the report: " + fileName + "</h1>";
 
     for (int i = 0; i < commandsResults.count(); i++) {
-        QHash keyValue = commandsResults[i];
+        const auto &keyValue = commandsResults[i];
         QString key = keyValue.keys()[0];
         if (key.contains("POINT#") || key.contains("C_POINT#") || key.contains("P_POINT#")) 
-            result += generateCodeForPoint(key, commandsResults[i][key]);
+            result += generateCodeForPoint(key, keyValue[key]);
         else if (key.contains("CIRCLE#"))
-            result += generateCodeForCircle(key, commandsResults[i][key]);
+            result += generateCodeForCircle(key, keyValue[key]);
         else if (key.contains("PLANE#"))
-            result += generateCodeForPlane(key, commandsResults[i][key]);
+            result += generateCodeForPlane(key, keyValue[key]);
         else if (key.contains("DEVIATION#"))
-            result += generateCodeForDeviation(commandsResults[i][key]);
+            result += generateCodeForDeviation(keyValue[key]);
     }
 
 	return result;
 }
 
-QString Report::generateCodeForPoint(QString nameCommand, QString dataCommand)
+QString Report::generateCodeForPoint(const QString &nameCommand, const QString &dataCommand)
 {
-    QString nomPoint = dataCommand.replace(" ", "");
+    QString nomPoint = dataCommand;
     nomPoint = nomPoint.remove(0, nomPoint.indexOf("(") + 1);
-    nomPoint = nomPoint.remove(nomPoint.indexOf(")"), nomPoint.length());
+    nomPoint = nomPoint.remove(nomPoint.indexOf(")"), nomPoint.length()).replace(" ", "");
     QStringList coordNomPoint = nomPoint.split(",");
 
     QString actPoint = dataCommand;
     actPoint = actPoint.remove(0, actPoint.lastIndexOf("(") + 1);
-    actPoint = actPoint.remove(actPoint.indexOf(")"), actPoint.length());
+    actPoint = actPoint.remove(actPoint.indexOf(")"), actPoint.length()).replace(" ", "");
     QStringList coordActPoint = actPoint.split(",");
 
     QString normal = dataCommand;
     normal = normal.remove(0, normal.indexOf("[") + 1);
-    normal = normal.remove(normal.indexOf("]"), normal.length());
+    normal = normal.remove(normal.indexOf("]"), normal.length()).replace(" ", "");
     QStringList coordNormal = normal.split(",");
 
     QString result = "<table border=\"1\">\
@@ -79,30 +78,30 @@ QString Report::generateCodeForPoint(QString nameCommand, QString dataCommand)
         .arg(coordActPoint[1]).arg(coordActPoint[2]).arg(coordNormal[0]).arg(coordNormal[1]).arg(coordNormal[2]);
 }
 
-QString Report::generateCodeForCircle(QString nameCommand, QString dataCommand)
+QString Report::generateCodeForCircle(const QString &nameCommand, const QString &dataCommand)
 {
-    QString nomCenter = dataCommand.replace(" ", "");
+    QString nomCenter = dataCommand;
     nomCenter = nomCenter.remove(0, nomCenter.indexOf("(") + 1);
-    nomCenter = nomCenter.remove(nomCenter.indexOf(")"), nomCenter.length());
+    nomCenter = nomCenter.remove(nomCenter.indexOf(")"), nomCenter.length()).replace(" ", "");
     QStringList coordNomCenter = nomCenter.split(",");
 
     QString actCenter = dataCommand;
     actCenter = actCenter.remove(0, actCenter.lastIndexOf("(") + 1);
-    actCenter = actCenter.remove(actCenter.indexOf(")"), actCenter.length());
+    actCenter = actCenter.remove(actCenter.indexOf(")"), actCenter.length()).replace(" ", "");
     QStringList coordActCenter = actCenter.split(",");
 
     QString nomNormal = dataCommand;
     nomNormal = nomNormal.remove(0, nomNormal.indexOf("[") + 1);
-    nomNormal = nomNormal.remove(nomNormal.indexOf("]"), nomNormal.length());
+    nomNormal = nomNormal.remove(nomNormal.indexOf("]"), nomNormal.length()).replace(" ", "");
     QStringList coordNomNormal = nomNormal.split(",");
 
     QString actNormal = dataCommand;
     actNormal = actNormal.remove(0, actNormal.lastIndexOf("[") + 1);
-    actNormal = actNormal.remove(actNormal.indexOf("]"), actNormal.length());
+    actNormal = actNormal.remove(actNormal.indexOf("]"), actNormal.length()).replace(" ", "");
     QStringList coordActNormal = actNormal.split(",");
 
     QString radiuses = dataCommand;
-    radiuses = radiuses.remove(0, radiuses.lastIndexOf("R") + 7);
+    radiuses = radiuses.remove(0, radiuses.lastIndexOf("R") + 7).replace(" ", "");
     QStringList valuesRadiuses = radiuses.split("/");
 
     QString result = "<table border=\"1\">\
@@ -154,26 +153,26 @@ QString Report::generateCodeForCircle(QString nameCommand, QString dataCommand)
         .arg(coordActNormal[0]).arg(coordActNormal[1]).arg(coordActNormal[2]).arg(valuesRadiuses[0]).arg(valuesRadiuses[1]);
 }
 
-QString Report::generateCodeForPlane(QString nameCommand, QString dataCommand)
+QString Report::generateCodeForPlane(const QString &nameCommand, const QString &dataCommand)
 {
-    QString nomPoint = dataCommand.replace(" ", "");
+    QString nomPoint = dataCommand;
     nomPoint = nomPoint.remove(0, nomPoint.indexOf("(") + 1);
-    nomPoint = nomPoint.remove(nomPoint.indexOf(")"), nomPoint.length());
+    nomPoint = nomPoint.remove(nomPoint.indexOf(")"), nomPoint.length()).replace(" ", "");
     QStringList coordNomCenter = nomPoint.split(",");
 
     QString actPoint = dataCommand;
     actPoint = actPoint.remove(0, actPoint.lastIndexOf("(") + 1);
-    actPoint = actPoint.remove(actPoint.indexOf(")"), actPoint.length());
+    actPoint = actPoint.remove(actPoint.indexOf(")"), actPoint.length()).replace(" ", "");
     QStringList coordActCenter = actPoint.split(",");
 
     QString nomNormal = dataCommand;
     nomNormal = nomNormal.remove(0, nomNormal.indexOf("[") + 1);
-    nomNormal = nomNormal.remove(nomNormal.indexOf("]"), nomNormal.length());
+    nomNormal = nomNormal.remove(nomNormal.indexOf("]"), nomNormal.length()).replace(" ", "");
     QStringList coordNomNormal = nomNormal.split(",");
 
     QString actNormal = dataCommand;
     actNormal = actNormal.remove(0, actNormal.lastIndexOf("[") + 1);
-    actNormal = actNormal.remove(actNormal.indexOf("]"), actNormal.length());
+    actNormal = actNormal.remove(actNormal.indexOf("]"), actNormal.length()).replace(" ", "");
     QStringList coordActNormal = actNormal.split(",");
 
     QString result = "<table border=\"1\">\
@@ -214,17 +213,17 @@ QString Report::generateCodeForPlane(QString nameCommand, QString dataCommand)
         .arg(coordActNormal[0]).arg(coordActNormal[1]).arg(coordActNormal[2]);
 }
 
-QString Report::generateCodeForDeviation(QString dataCommand)
+QString Report::generateCodeForDeviation(const QString &dataCommand)
 {
     QString nameCommand = dataCommand;
     nameCommand = nameCommand.remove(nameCommand.lastIndexOf("P"), nameCommand.length());
     if (nameCommand.contains("POINT#")) {
-        QString strActDeviation = dataCommand.replace(" ", "");
+        QString strActDeviation = dataCommand;
         strActDeviation = strActDeviation.remove(0, strActDeviation.indexOf(":") + 1);
-        strActDeviation = strActDeviation.remove(strActDeviation.indexOf("("), strActDeviation.length());
+        strActDeviation = strActDeviation.remove(strActDeviation.indexOf("("), strActDeviation.length()).replace(" ", "");
         double actDeviation = strActDeviation.toDouble();
         QString strNomDeviation = dataCommand;
-        strNomDeviation = strNomDeviation.remove(0, strNomDeviation.indexOf("(") + 1).replace(")", "");
+        strNomDeviation = strNomDeviation.remove(0, strNomDeviation.indexOf("(") + 1).replace(")", "").replace(" ", "");
         double nomDeviation = strNomDeviation.toDouble();
         QString isCorrectForPoint = nomDeviation >= actDeviation ? "True" : "False";
 
@@ -244,22 +243,22 @@ QString Report::generateCodeForDeviation(QString dataCommand)
         return result.arg(nameCommand).arg(strActDeviation).arg(strNomDeviation).arg(isCorrectForPoint);
     }
     else {
-        QString strActDevCenter = dataCommand.replace(" ", "");
+        QString strActDevCenter = dataCommand;
         strActDevCenter = strActDevCenter.remove(0, strActDevCenter.indexOf(":") + 1);
-        strActDevCenter = strActDevCenter.remove(strActDevCenter.indexOf("("), strActDevCenter.length());
+        strActDevCenter = strActDevCenter.remove(strActDevCenter.indexOf("("), strActDevCenter.length()).replace(" ", "");
         double actDevCenter = strActDevCenter.toDouble();
         QString strNomDevCenter = dataCommand;
         strNomDevCenter = strNomDevCenter.remove(0, strNomDevCenter.indexOf("(") + 1);
-        strNomDevCenter = strNomDevCenter.remove(strNomDevCenter.indexOf(")"), strNomDevCenter.length());
+        strNomDevCenter = strNomDevCenter.remove(strNomDevCenter.indexOf(")"), strNomDevCenter.length()).replace(" ", "");
         double nomDevCenter = strNomDevCenter.toDouble();
         QString isCorrectForCenter = nomDevCenter >= actDevCenter ? "True" : "False";
 
         QString strActDevRadius = dataCommand;
         strActDevRadius = strActDevRadius.remove(0, strActDevRadius.lastIndexOf("(") + 1);
-        strActDevRadius = strActDevRadius.remove(strActDevRadius.indexOf("/"), strActDevRadius.length());
+        strActDevRadius = strActDevRadius.remove(strActDevRadius.indexOf("/"), strActDevRadius.length()).replace(" ", "");
         double actDevRadius = strActDevRadius.toDouble();
         QString strNomDevRadius = dataCommand;
-        strNomDevRadius = strNomDevRadius.remove(0, strNomDevRadius.lastIndexOf("/") + 1).replace(")", "");
+        strNomDevRadius = strNomDevRadius.remove(0, strNomDevRadius.lastIndexOf("/") + 1).replace(")", "").replace(" ", "");
         double nomDevRadius = strNomDevRadius.toDouble();
         QString isCorrectForRadius = nomDevRadius >= actDevRadius ? "True" : "False";
 
