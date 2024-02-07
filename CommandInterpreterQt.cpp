@@ -108,6 +108,7 @@ void CommandInterpreterQt::debugButtonClick()
 {
 	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n");
 	inputCommands.removeAll(QString());
+
 	if (numberOfClicks == 0) {
 		hasError = false;
 		commandsResults.clear();
@@ -276,7 +277,7 @@ void CommandInterpreterQt::getCircleResults(QString& command, const QStringList&
 				QString thirdPoint = commandsHistory[points[2]];
 				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
 				auto data = mMachine->circle(commandsHistory[nameCommand], points, 0.0125, 0.0125);
-				circleResults.insert(nameCommand, MeasureMachine::DataCircle{
+				circleResults.insert(nameCommand, Data::Circle{
 					data.get_nomCenter(), data.get_actCenter(), data.get_norVector() });
 				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
 				commandsResults[sequenceNumber][nameCommand] = data.get_result();
@@ -332,7 +333,7 @@ void CommandInterpreterQt::getPlaneResults(QString& command, const QStringList& 
 				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
 
 				auto data = mMachine->plane(commandsHistory[nameCommand], points);
-				planeResults.insert(nameCommand, MeasureMachine::DataPlane{ data.get_norVector(), data.get_point() });
+				planeResults.insert(nameCommand, Data::Plane{ data.get_norVector(), data.get_point() });
 				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
 				commandsResults[sequenceNumber][nameCommand] = data.get_result();
 				sequenceNumber++;

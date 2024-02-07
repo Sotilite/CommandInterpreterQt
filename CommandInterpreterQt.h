@@ -5,6 +5,8 @@
 #include "CommandInterpreterQt.h"
 #include "MeasureMachine.h"
 #include "Report.h"
+#include "Data.h"
+#include "Coordinates.h"
 #include <iostream>
 #include <qstring.h>
 #include <qmap.h>
@@ -32,8 +34,8 @@ private:
         nonExistentCommand,
         invalidFormat
     };
-    QMap<QString, MeasureMachine::DataCircle> circleResults;
-    QMap<QString, MeasureMachine::DataPlane> planeResults;
+    QMap<QString, Data::Circle> circleResults;
+    QMap<QString, Data::Plane> planeResults;
     QMap<QString, QString> commandsHistory;
     QMap<int, QMap<QString, QString>> commandsResults;
     int numPreviousLine;

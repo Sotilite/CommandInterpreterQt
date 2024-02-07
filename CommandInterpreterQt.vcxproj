@@ -89,6 +89,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Coordinates.cpp" />
+    <ClCompile Include="Data.cpp" />
     <ClCompile Include="MeasureMachine.cpp" />
     <ClCompile Include="Report.cpp" />
     <QtRcc Include="CommandInterpreterQt.qrc" />
@@ -102,6 +104,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Report.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Data.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Coordinates.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
