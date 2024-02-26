@@ -1,17 +1,11 @@
 #include "CommandInterpreterQt.h"
 
-using namespace std;
-
 CommandInterpreterQt::CommandInterpreterQt(QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
 
-	mMachine = new MeasureMachine(this);
-	report = new Report(this);
-
 	numPreviousLine = 0;
-	sequenceNumber = 0;
 	numberOfClicks = 0;
 	hasError = false;
 
@@ -32,9 +26,7 @@ CommandInterpreterQt::CommandInterpreterQt(QWidget* parent)
 	connect(ui.deviationButton, &QPushButton::clicked, this, &CommandInterpreterQt::deviationButtonClick);
 }
 
-CommandInterpreterQt::~CommandInterpreterQt()
-{
-}
+CommandInterpreterQt::~CommandInterpreterQt() {}
 
 void CommandInterpreterQt::throwError(const QString& command, Errors error)
 {
@@ -74,17 +66,15 @@ void CommandInterpreterQt::callCommmand(const QStringList& inputCommands, int in
 	else throwError(command, Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::runButtonClick()
-{
+void CommandInterpreterQt::runButtonClick() {
 	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n");
 	inputCommands.removeAll(QString());
 	if (numberOfClicks == 0) {
 		hasError = false;
-		commandsResults.clear();
+		listForReport.clear();
 	}
 	else if (numberOfClicks >= inputCommands.length() - 1) {
 		numberOfClicks = 0;
-		sequenceNumber = 0;
 		commandsHistory.clear();
 		ui.outputConsole->append("");
 	}
@@ -100,18 +90,16 @@ void CommandInterpreterQt::runButtonClick()
 		ui.outputConsole->append("");
 		commandsHistory.clear();
 		numberOfClicks = 0;
-		sequenceNumber = 0;
 	}
 }
 
-void CommandInterpreterQt::debugButtonClick()
-{
+void CommandInterpreterQt::debugButtonClick() {
 	QStringList inputCommands = ui.inputConsole->toPlainText().split("\n");
 	inputCommands.removeAll(QString());
 
 	if (numberOfClicks == 0) {
 		hasError = false;
-		commandsResults.clear();
+		listForReport.clear();
 	}
 
 	if (numberOfClicks < inputCommands.length() && inputCommands.length() > 0) {
@@ -129,30 +117,26 @@ void CommandInterpreterQt::debugButtonClick()
 	}
 }
 
-QString CommandInterpreterQt::getNumberCommand(QString command)
-{
+QString CommandInterpreterQt::getNumberCommand(QString command) {
 	QString numCommand = command.remove(0, command.indexOf('#') + 1);
 	numCommand = numCommand.remove(numCommand.indexOf('('), numCommand.length());
 	return numCommand;
 }
 
-bool CommandInterpreterQt::isNumber(const QString& numCommand)
-{
+bool CommandInterpreterQt::isNumber(const QString& numCommand) {
 	for (int i = 0; i < numCommand.length(); i++)
 		if (!numCommand[i].isNumber()) return false;
 	return true;
 }
 
-void CommandInterpreterQt::determineColorAndOutputResult(int r, int g, int b, const QString& nameCommand, const QString& result)
-{
-	ui.outputConsole->setTextColor(QColor(r, g, b));
-	ui.outputConsole->append(nameCommand + ": ");
+void CommandInterpreterQt::determineColorAndOutputResult(shared_ptr<Command> command) {
+	ui.outputConsole->setTextColor(command->color());
+	ui.outputConsole->append(command->name() + ": ");
 	ui.outputConsole->setTextColor(QColor(0, 0, 0));
-	ui.outputConsole->insertPlainText(result);
+	ui.outputConsole->insertPlainText(command->generateTextForOutput());
 }
 
-void CommandInterpreterQt::getCommentResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getCommentResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "COMMENT#" + numCommand;
@@ -160,15 +144,15 @@ void CommandInterpreterQt::getCommentResults(QString& command, const QStringList
 		else {
 			QString textComment = inputCommands[index];
 			textComment = textComment.remove(0, textComment.indexOf("(") + 1).replace(")", "");
-			determineColorAndOutputResult(255, 0, 0, nameCommand, "\n//" + textComment);
-			commandsHistory[nameCommand] = "(" + textComment + ")";
+			auto commentCommand = shared_ptr<Command>(new CommentCommand(nameCommand, textComment));
+			determineColorAndOutputResult(commentCommand);
+			commandsHistory[nameCommand] = commentCommand;
 		}
 	}
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::hasOnlyNumbers(QString command, const QString& nameCommand)
-{
+bool CommandInterpreterQt::hasOnlyNumbers(QString command, const QString& nameCommand) {
 	int numOpenBrackets = command.split('(').length() - 1;
 	int numCloseBrackets = command.split(')').length() - 1;
 	int numOpenSquareBrackets = command.split('[').length() - 1;
@@ -205,8 +189,7 @@ bool CommandInterpreterQt::hasOnlyNumbers(QString command, const QString& nameCo
 	return false;
 }
 
-void CommandInterpreterQt::getMoveResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getMoveResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "MOVE#" + numCommand;
@@ -214,16 +197,26 @@ void CommandInterpreterQt::getMoveResults(QString& command, const QStringList& i
 		else if (hasOnlyNumbers(command, "")) {
 			QString dataCommand = command;
 			dataCommand = dataCommand.remove(0, command.indexOf("("));
-			determineColorAndOutputResult(0, 255, 0, nameCommand, mMachine->move(dataCommand));
-			commandsHistory[nameCommand] = dataCommand;
+			dataCommand = dataCommand.replace("(", "").replace(")", "");
+
+			QStringList strCoordinates = dataCommand.split(",");
+			Coordinates coords;
+
+			for (int i = 0; i < strCoordinates.length(); i++) {
+				double coordinate = strCoordinates[i].toDouble();
+				coords.setValue(i, coordinate);
+			}
+
+			auto moveCommand = shared_ptr<Command>(new MoveCommand(nameCommand, coords));
+			determineColorAndOutputResult(moveCommand);
+			commandsHistory[nameCommand] = moveCommand;
 		}
 		else throwError(inputCommands[index], Errors::invalidFormat);
 	}
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::isVectorCorrect(QString& command, const QString& nameCommand)
-{
+bool CommandInterpreterQt::isVectorCorrect(QString& command, const QString& nameCommand) {
 	QString vector = command;
 	vector = vector.remove(0, command.indexOf("[") + 1);
 	vector = vector.replace("]", "");
@@ -234,8 +227,7 @@ bool CommandInterpreterQt::isVectorCorrect(QString& command, const QString& name
 	return false;
 }
 
-void CommandInterpreterQt::getPointResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getPointResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "POINT#" + numCommand;
@@ -243,19 +235,32 @@ void CommandInterpreterQt::getPointResults(QString& command, const QStringList& 
 		else if (hasOnlyNumbers(command, "") && isVectorCorrect(command, nameCommand)) {
 			QString dataCommand = command;
 			dataCommand = dataCommand.remove(0, command.indexOf("("));
-			auto data = mMachine->point(dataCommand, 0.0125);
-			determineColorAndOutputResult(0, 255, 0, nameCommand, "\n" + data.get_result());
-			commandsHistory[nameCommand] = dataCommand;
-			commandsResults[sequenceNumber][nameCommand] = data.get_result();
-			sequenceNumber++;
+			dataCommand = dataCommand.replace("(", "").replace(")", "");
+			QString strNorVector = dataCommand;
+			strNorVector = strNorVector.remove(0, strNorVector.indexOf('[') + 1).replace("]", "");
+			QStringList coordNormalVector = strNorVector.split(',');
+			dataCommand = dataCommand.remove(dataCommand.indexOf('['), dataCommand.length());
+			QStringList strNomPoint = dataCommand.split(',');
+			Coordinates nominalPoint;
+			Coordinates normalVector;
+
+			for (int i = 0; i < 3; i++) {
+				nominalPoint.setValue(i, strNomPoint[i].toDouble());
+				normalVector.setValue(i, coordNormalVector[i].toDouble());
+			}
+
+			auto pointCommand = shared_ptr<Command>(new PointCommand(nameCommand, nominalPoint, normalVector));
+			pointCommand->process();
+			determineColorAndOutputResult(pointCommand);
+			commandsHistory[nameCommand] = pointCommand;
+			listForReport.append(pointCommand);
 		}
 		else throwError(inputCommands[index], Errors::invalidFormat);
 	}
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getCircleResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getCircleResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "CIRCLE#" + numCommand;
@@ -272,16 +277,16 @@ void CommandInterpreterQt::getCircleResults(QString& command, const QStringList&
 				}
 			}
 			if (isAllContainsCircle) {
-				QString firstPoint = commandsHistory[points[0]];
-				QString secondPoint = commandsHistory[points[1]];
-				QString thirdPoint = commandsHistory[points[2]];
-				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
-				auto data = mMachine->circle(commandsHistory[nameCommand], points, 0.0125, 0.0125);
-				circleResults.insert(nameCommand, Data::Circle{
-					data.get_nomCenter(), data.get_actCenter(), data.get_norVector() });
-				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
-				commandsResults[sequenceNumber][nameCommand] = data.get_result();
-				sequenceNumber++;
+				QList<PointCommand*> pointsCircle = {
+					dynamic_cast<PointCommand*>(commandsHistory[points[0]].get()),
+					dynamic_cast<PointCommand*>(commandsHistory[points[1]].get()),
+					dynamic_cast<PointCommand*>(commandsHistory[points[2]].get())
+				};
+				auto circleCommand = shared_ptr<Command>(new CircleCommand(nameCommand, pointsCircle));
+				circleCommand->process();
+				determineColorAndOutputResult(circleCommand);
+				commandsHistory[nameCommand] = circleCommand;
+				listForReport.append(circleCommand);
 			}
 		}
 	}
@@ -297,11 +302,12 @@ void CommandInterpreterQt::getCenterResults(QString& command, const QStringList&
 		else {
 			QString nameCircle = command.split("(")[1].replace(")", "").toUpper();
 			if (commandsHistory.contains(nameCircle)) {
-				auto data = mMachine->center(circleResults[nameCircle]);
-				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + data.get_result());
-				commandsHistory[nameCommand] = data.get_dataDict();
-				commandsResults[sequenceNumber][nameCommand] = data.get_result();
-				sequenceNumber++;
+				auto circleCommand = dynamic_cast<CircleCommand*>(commandsHistory[nameCircle].get());
+				auto centerCommand = shared_ptr<Command>(new CenterCommand(nameCommand, circleCommand->get_nomCenter(), circleCommand->get_nomNormal()));
+				centerCommand->process();
+				determineColorAndOutputResult(centerCommand);
+				commandsHistory[nameCommand] = centerCommand;
+				listForReport.append(centerCommand);
 			}
 			else throwError(nameCircle, Errors::nonExistentCommand);
 		}
@@ -327,24 +333,23 @@ void CommandInterpreterQt::getPlaneResults(QString& command, const QStringList& 
 				}
 			}
 			if (isAllContainsPlane) {
-				QString firstPoint = commandsHistory[points[0]];
-				QString secondPoint = commandsHistory[points[1]];
-				QString thirdPoint = commandsHistory[points[2]];
-				commandsHistory[nameCommand] = firstPoint + secondPoint + thirdPoint;
-
-				auto data = mMachine->plane(commandsHistory[nameCommand], points);
-				planeResults.insert(nameCommand, Data::Plane{ data.get_norVector(), data.get_point() });
-				determineColorAndOutputResult(255, 170, 0, nameCommand, data.get_result());
-				commandsResults[sequenceNumber][nameCommand] = data.get_result();
-				sequenceNumber++;
+				QList<PointCommand*> pointsPlane = {
+					dynamic_cast<PointCommand*>(commandsHistory[points[0]].get()),
+					dynamic_cast<PointCommand*>(commandsHistory[points[1]].get()),
+					dynamic_cast<PointCommand*>(commandsHistory[points[2]].get())
+				};
+				auto planeCommand = shared_ptr<Command>(new PlaneCommand(nameCommand, pointsPlane));
+				planeCommand->process();
+				determineColorAndOutputResult(planeCommand);
+				commandsHistory[nameCommand] = planeCommand;
+				listForReport.append(planeCommand);
 			}
 		}
 	}
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::getProjectionResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getProjectionResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "P_POINT#" + numCommand;
@@ -355,12 +360,17 @@ void CommandInterpreterQt::getProjectionResults(QString& command, const QStringL
 			QString namePoint = command.split("[")[1].replace("]", "").toUpper();
 			if (!commandsHistory.contains(namePoint)) throwError(namePoint, Errors::nonExistentCommand);
 			else if (commandsHistory.contains(namePlane)) {
-				auto data = mMachine->projectionPoint(commandsHistory[namePoint],
-					planeResults[namePlane].get_norVector(), planeResults[namePlane].get_point());
-				determineColorAndOutputResult(255, 170, 0, nameCommand, "\n" + data.get_result());
-				commandsHistory[nameCommand] = data.get_nomPoint();
-				commandsResults[sequenceNumber][nameCommand] = data.get_result();
-				sequenceNumber++;
+				auto planeCommand = dynamic_cast<PlaneCommand*>(commandsHistory[namePlane].get());
+				auto normalVector = planeCommand->get_nomNormal();
+				auto pointPlane = planeCommand->get_nomMidPoint();
+				auto pointCommand = dynamic_cast<PointCommand*>(commandsHistory[namePoint].get());
+				auto nomProjPoint = MeasureMachine::getProjectionPoint(pointCommand->get_nomPoint(), normalVector, pointPlane);
+
+				auto projectionCommand = shared_ptr<Command>(new ProjectionCommand(nameCommand, nomProjPoint, normalVector));
+				projectionCommand->process();
+				determineColorAndOutputResult(projectionCommand);
+				commandsHistory[nameCommand] = projectionCommand;
+				listForReport.append(projectionCommand);
 			}
 			else throwError(namePlane, Errors::nonExistentCommand);
 		}
@@ -368,10 +378,9 @@ void CommandInterpreterQt::getProjectionResults(QString& command, const QStringL
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-bool CommandInterpreterQt::isDeviationCorrect(const QString& nameCommand, QString strDeviation)
-{
+bool CommandInterpreterQt::isDeviationCorrect(const QString& nameCommand, QString strDeviation) {
 	strDeviation = strDeviation.removeFirst().removeLast();
-	QStringList f = strDeviation.split(",");
+
 	if (nameCommand.contains("POINT")) {
 		if (strDeviation.split(".").length() - 1 == 1 && strDeviation.split(",").length() == 1) {
 			strDeviation = strDeviation.replace(".", "");
@@ -400,41 +409,44 @@ bool CommandInterpreterQt::isDeviationCorrect(const QString& nameCommand, QStrin
 	}
 }
 
-void CommandInterpreterQt::getDeviationResults(QString& command, const QStringList& inputCommands, int index)
-{
+void CommandInterpreterQt::getDeviationResults(QString& command, const QStringList& inputCommands, int index) {
 	QString numCommand = getNumberCommand(command);
 	if (isNumber(numCommand) && numCommand.length() > 0) {
 		QString nameCommand = "DEVIATION#" + numCommand;
 		if (commandsHistory.contains(nameCommand)) throwError(inputCommands[index], Errors::existingCommand);
 		else {
-			QString key = command.remove(0, command.indexOf('(') + 1);
-			QString deviation = key;
-			deviation = deviation.remove(0, key.indexOf("["));
-			key = key.remove(key.indexOf('['), key.length());
-			key = key.replace(")", "").toUpper();
-			if (!commandsHistory.contains(key)) throwError(key, Errors::nonExistentCommand);
-			else {
-				QString newValue = commandsHistory[key];
-				newValue = newValue.replace("(", "");
-				if (key.contains("POINT#")) newValue = newValue.remove(newValue.indexOf(")"), newValue.length());
-				newValue += deviation;
-				if (isDeviationCorrect(key, deviation))
-				{
-					QString commandResult = mMachine->deviation(key, commandsHistory[key], deviation);
-					determineColorAndOutputResult(0, 0, 255, nameCommand, commandResult);
-					commandsHistory[nameCommand] = commandResult;
-					commandsResults[sequenceNumber][nameCommand] = commandResult;
-					sequenceNumber++;
+			QString name = command.remove(0, command.indexOf('(') + 1);
+			QString strDeviation = name;
+			strDeviation = strDeviation.remove(0, strDeviation.indexOf("[") + 1).replace("]", "");
+			name = name.remove(name.indexOf('['), name.length());
+			name = name.replace(")", "").toUpper();
+			if (!commandsHistory.contains(name)) throwError(name, Errors::nonExistentCommand);
+			else if (isDeviationCorrect(name, strDeviation)) {
+				if (command.contains("POINT#")) {
+					auto pointCommand = dynamic_cast<PointCommand*>(commandsHistory[name].get());
+					auto pDeviationCommand = shared_ptr<Command>(new PDeviationCommand(nameCommand, pointCommand, strDeviation.toDouble()));
+					pDeviationCommand->process();
+					determineColorAndOutputResult(pDeviationCommand);
+					commandsHistory[nameCommand] = pDeviationCommand;
+					listForReport.append(pDeviationCommand);
 				}
-				else throwError(inputCommands[index], Errors::invalidFormat);
+				else {
+					auto circleCommand = dynamic_cast<CircleCommand*>(commandsHistory[name].get());
+					auto deviations = strDeviation.split(",");
+					auto cDeviationCommand = shared_ptr<Command>(new CDeviationCommand(nameCommand, circleCommand, deviations[0].toDouble(), deviations[1].toDouble()));
+					cDeviationCommand->process();
+				    listForReport.append(cDeviationCommand);
+					determineColorAndOutputResult(cDeviationCommand);
+					commandsHistory[nameCommand] = cDeviationCommand;
+				}
 			}
+			else throwError(inputCommands[index], Errors::invalidFormat);
 		}
 	}
 	else throwError(inputCommands[index], Errors::invalidFormat);
 }
 
-void CommandInterpreterQt::saveFileButtonClick()
-{
+void CommandInterpreterQt::saveFileButtonClick() {
 	QString filePath = QFileDialog::getSaveFileName(nullptr, "Save file", "", "(*.txt)");
 
 	if (!filePath.isEmpty()) {
@@ -448,8 +460,7 @@ void CommandInterpreterQt::saveFileButtonClick()
 	}
 }
 
-void CommandInterpreterQt::openFileButtonClick()
-{
+void CommandInterpreterQt::openFileButtonClick() {
 	QString filePath = QFileDialog::getOpenFileName(nullptr, "Open file", "", "(*.txt)");
 
 	if (!filePath.isEmpty()) {
@@ -463,8 +474,7 @@ void CommandInterpreterQt::openFileButtonClick()
 	}
 }
 
-void CommandInterpreterQt::getReportButtonClick()
-{
+void CommandInterpreterQt::getReportButtonClick() {
 	if (!hasError) {
 		QString filePath = QFileDialog::getSaveFileName(nullptr, "Save file", "", "(*.html)");
 
@@ -473,8 +483,15 @@ void CommandInterpreterQt::getReportButtonClick()
 			QFileInfo fileInfo(file.fileName());
 			QString fileName(fileInfo.fileName());
 			if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+				fileName = fileName.remove(fileName.indexOf("."), fileName.length());
+				QString report = "<h1>Name of the report: " + fileName + "</h1>";
+
+				for (auto& command : listForReport) {
+					report += command->generateTextForReport();
+				}
+
 				QTextEdit data;
-				data.setText(report->createReport(commandsResults, fileName));
+				data.setText(report);
 				QTextStream out(&file);
 				out << data.toHtml();
 				file.close();
@@ -485,33 +502,25 @@ void CommandInterpreterQt::getReportButtonClick()
 		QMessageBox::information(
 			this,
 			tr("Error message"),
-			tr("An error occurred while executing the commands.Check the output."));
+			tr("An error occurred while executing the commands. Check the output."));
 	}
 }
 
-void CommandInterpreterQt::clearInputButtonClick()
-{
+void CommandInterpreterQt::clearInputButtonClick() {
 	ui.inputConsole->setText("");
 	numPreviousLine = 0;
-	circleResults.clear();
-	planeResults.clear();
 	numberOfClicks = 0;
 }
 
-void CommandInterpreterQt::clearOutputButtonClick()
-{
+void CommandInterpreterQt::clearOutputButtonClick() {
 	ui.outputConsole->setText("");
 	numPreviousLine = 0;
-	circleResults.clear();
-	planeResults.clear();
 	commandsHistory.clear();
-	commandsResults.clear();
+	listForReport.clear();
 	numberOfClicks = 0;
-	sequenceNumber = 0;
 }
 
-void CommandInterpreterQt::processButtonClick(const QString& nameCommand)
-{
+void CommandInterpreterQt::processButtonClick(const QString& nameCommand) {
 	if (ui.inputConsole->toPlainText().length() == 0)
 		ui.inputConsole->insertPlainText(nameCommand);
 	else if (ui.inputConsole->toPlainText().split("\n").last().length() == 0) {
@@ -523,33 +532,27 @@ void CommandInterpreterQt::processButtonClick(const QString& nameCommand)
 	}
 }
 
-void CommandInterpreterQt::commentButtonClick()
-{
+void CommandInterpreterQt::commentButtonClick() {
 	processButtonClick("COMMENT#()");
 }
 
-void CommandInterpreterQt::moveButtonClick()
-{
+void CommandInterpreterQt::moveButtonClick() {
 	processButtonClick("MOVE#()");
 }
 
-void CommandInterpreterQt::pointButtonClick()
-{
+void CommandInterpreterQt::pointButtonClick() {
 	processButtonClick("POINT#()[1, 0, 0]");
 }
 
-void CommandInterpreterQt::circleButtonClick()
-{
+void CommandInterpreterQt::circleButtonClick() {
 	processButtonClick("CIRCLE#()()()");
 }
 
-void CommandInterpreterQt::centerButtonClick()
-{
+void CommandInterpreterQt::centerButtonClick() {
 	processButtonClick("C_POINT#()");
 }
 
-void CommandInterpreterQt::planeButtonClick()
-{
+void CommandInterpreterQt::planeButtonClick() {
 	processButtonClick("PLANE#()()()");
 }
 

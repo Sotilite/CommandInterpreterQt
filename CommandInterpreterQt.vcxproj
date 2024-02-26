@@ -89,10 +89,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CDeviationCommand.cpp" />
+    <ClCompile Include="CenterCommand.cpp" />
+    <ClCompile Include="CircleCommand.cpp" />
+    <ClCompile Include="Command.cpp" />
+    <ClCompile Include="CommentCommand.cpp" />
     <ClCompile Include="Coordinates.cpp" />
-    <ClCompile Include="Data.cpp" />
     <ClCompile Include="MeasureMachine.cpp" />
-    <ClCompile Include="Report.cpp" />
+    <ClCompile Include="MoveCommand.cpp" />
+    <ClCompile Include="PDeviationCommand.cpp" />
+    <ClCompile Include="PlaneCommand.cpp" />
+    <ClCompile Include="PointCommand.cpp" />
+    <ClCompile Include="ProjectionCommand.cpp" />
     <QtRcc Include="CommandInterpreterQt.qrc" />
     <QtUic Include="CommandInterpreterQt.ui" />
     <QtMoc Include="CommandInterpreterQt.h" />
@@ -100,16 +108,22 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="MeasureMachine.h" />
+    <ClInclude Include="CDeviationCommand.h" />
+    <ClInclude Include="CenterCommand.h" />
+    <ClInclude Include="CircleCommand.h" />
+    <ClInclude Include="CommentCommand.h" />
+    <ClInclude Include="MeasureMachine.h" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="Report.h" />
+    <ClInclude Include="MoveCommand.h" />
+    <ClInclude Include="PDeviationCommand.h" />
+    <ClInclude Include="PlaneCommand.h" />
+    <ClInclude Include="PointCommand.h" />
+    <ClInclude Include="ProjectionCommand.h" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="Data.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="Coordinates.h" />
+    <ClInclude Include="Command.h" />
+    <ClInclude Include="Coordinates.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

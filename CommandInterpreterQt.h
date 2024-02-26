@@ -2,18 +2,24 @@
 
 #include "ui_CommandInterpreterQt.h"
 #include <QtWidgets/QMainWindow>
-#include "CommandInterpreterQt.h"
 #include "MeasureMachine.h"
-#include "Report.h"
-#include "Data.h"
+#include "Command.h"
+#include "CommentCommand.h"
+#include "MoveCommand.h"
+#include "PointCommand.h"
+#include "CircleCommand.h"
+#include "CenterCommand.h"
+#include "PlaneCommand.h"
+#include "ProjectionCommand.h"
+#include "PDeviationCommand.h"
+#include "CDeviationCommand.h"
 #include "Coordinates.h"
-#include <iostream>
-#include <qstring.h>
-#include <qmap.h>
-#include <algorithm>
-#include <tuple>
-#include <qfileDialog.h>
-#include <qmessagebox.h>
+#include <QString>
+#include <QMap>
+#include <QFileDialog>
+#include <QMessagebox>
+
+using namespace std;
 
 class CommandInterpreterQt : public QMainWindow
 {
@@ -25,24 +31,37 @@ public:
     
 private:
     Ui::CommandInterpreterQtClass ui;
-    
-    MeasureMachine* mMachine{};
-    Report* report{};
 
     enum Errors {
         existingCommand,
         nonExistentCommand,
         invalidFormat
     };
-    QMap<QString, Data::Circle> circleResults;
-    QMap<QString, Data::Plane> planeResults;
-    QMap<QString, QString> commandsHistory;
-    QMap<int, QMap<QString, QString>> commandsResults;
+
+    QMap<QString, shared_ptr<Command>> commandsHistory;
+    QList<shared_ptr<Command>> listForReport;
     int numPreviousLine;
-    int sequenceNumber;
     int numberOfClicks;
     bool hasError;
-    
+
+    void callCommmand(const QStringList &inputCommands, int index);
+    void getCommentResults(QString &command, const QStringList &inputCommands, int index);
+    void getMoveResults(QString &command, const QStringList &inputCommands, int index);
+    void getPointResults(QString &command, const QStringList &inputCommands, int index);
+    void getCircleResults(QString &command, const QStringList &inputCommands, int index);
+    void getCenterResults(QString &command, const QStringList &inputCommands, int index);
+    void getPlaneResults(QString &command, const QStringList &inputCommands, int index);
+    void getProjectionResults(QString &command, const QStringList &inputCommands, int index);
+    void getDeviationResults(QString& command, const QStringList& inputCommands, int index);
+    void throwError(const QString &command, Errors error);
+    QString getNumberCommand(QString command);
+    bool isNumber(const QString& numCommand);
+    void determineColorAndOutputResult(shared_ptr<Command> command);
+    bool hasOnlyNumbers(QString command, const QString &nameCommand);
+    bool isVectorCorrect(QString &command, const QString &nameCommand);
+    bool isDeviationCorrect(const QString &nameCommand, QString strDeviation);
+    void processButtonClick(const QString &nameCommand);
+
 private slots:
     void runButtonClick();
     void debugButtonClick();
@@ -59,21 +78,4 @@ private slots:
     void planeButtonClick();
     void projectionButtonClick();
     void deviationButtonClick();
-    void callCommmand(const QStringList &inputCommands, int index);
-    void getCommentResults(QString &command, const QStringList &inputCommands, int index);
-    void getMoveResults(QString &command, const QStringList &inputCommands, int index);
-    void getPointResults(QString &command, const QStringList &inputCommands, int index);
-    void getCircleResults(QString &command, const QStringList &inputCommands, int index);
-    void getCenterResults(QString &command, const QStringList &inputCommands, int index);
-    void getPlaneResults(QString &command, const QStringList &inputCommands, int index);
-    void getProjectionResults(QString &command, const QStringList &inputCommands, int index);
-    void getDeviationResults(QString &command, const QStringList &inputCommands, int index);
-    void throwError(const QString &command, Errors error);
-    QString getNumberCommand(QString command);
-    bool isNumber(const QString& numCommand);
-    void determineColorAndOutputResult(int r, int g, int b, const QString &nameCommand, const QString & result);
-    bool hasOnlyNumbers(QString command, const QString &nameCommand);
-    bool isVectorCorrect(QString &command, const QString &nameCommand);
-    bool isDeviationCorrect(const QString &nameCommand, QString strDeviation);
-    void processButtonClick(const QString &nameCommand);
 };

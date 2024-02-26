@@ -1,50 +1,42 @@
 #pragma once
 
-#include <QObject>
+#include <QDebug>
+#include <QList>
 
-class Coordinates : public QObject
-{
-	Q_OBJECT
-
-public:
-	Coordinates(QObject* parent);
-	~Coordinates();
-
-private:
-	double x;
-	double y;
-	double z;
-
+class Coordinates {
 public:
 	Coordinates() : Coordinates(0, 0, 0) {}
 
-	Coordinates(double x, double y, double z) 
-	{
+	Coordinates(double x, double y, double z) {
 		this->x = x;
 		this->y = y;
 		this->z = z;
 	}
 
-	Coordinates(const Coordinates& coords)
-	{
-		x = coords.x;
-		y = coords.y;
-		z = coords.z;
+	Coordinates(const Coordinates& coords) {
+		this->x = coords.x;
+		this->y = coords.y;
+		this->z = coords.z;
 	}
 
-	Coordinates &operator=(const Coordinates)
-	{
-		return *this;
+	const double get_x() const { 
+		return x; 
 	}
 
-	double get_x() { return x; }
-	double get_y() { return y; }
-	double get_z() { return z; }
-
-	void setValue(int index, double value) {
-		if (index == 0) x = value;
-		else if (index == 1) y = value;
-		else if (index == 2) z = value;
-		else qDebug("The index has gone abroad");
+	const double get_y() const {
+		return y; 
 	}
+
+	const double get_z() const { 
+		return z; 
+	}
+
+	void setValue(int index, double value);
+
+	double getValue(int index);
+
+private:
+	double x;
+	double y;
+	double z;
 };
